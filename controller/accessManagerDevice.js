@@ -1,6 +1,8 @@
 const { AccessManagerDevice } = require('../models/AccessManagerDevice');
 const { AccessManagerDeviceData } = require('../models/AccessManagerDeviceData');
 const { User } = require('../models/User');
+const path = require('path')
+const qr = require('qrcode');
 
 exports.registerADM = async (req, res, next) => {
     const body = req.body;
@@ -40,17 +42,44 @@ exports.createADM = async (req, res, next) => {
 }
 
 exports.getUserContactListDevices = async (req, res, next) => {
+    console.log('PETICIÓN A CONTACT LIST DEVICES')
     const body = req.body;
     const { contactsPhones, userId } = body;
     // console.log(contactsPhones)
     const users = await User.find({ 'phoneNumber': { $in: contactsPhones } });
     console.log('users: ', users)
-    const devices = await getDevices(users,userId)
+    const devices = await getDevices(users, userId)
 
     // console.log(devices);
     return res.status(200).json(devices);
 
 }
+exports.getAccessManagerDeviceData = async (req, res, next) => {
+    console.log('in ADM DATA')
+    const param = req.params
+    console.log(param)
+    const { device } = param;
+    console.log(device)
+    const deviceData = await AccessManagerDeviceData.findOne({ device: device })
+        .select('-admin -allowedUsers -__v')
+        .catch(err =>
+            res.status(500)
+                .json({ error: 'Something went wrong!' }))
+    // const qrcreate = qr.create('HOLA QUE TAL TIO');
+    // console.log(__dirname)
+
+    // const pa = path.join('..',__dirname, 'img')
+    // await qr.toFile(`C:\\Users\\Raul9\\Desktop\\Desarrollo\\Proyectos\\TFC\\api\\img\\dslfjasf.png`, JSON.stringify(deviceData), {
+    //     color: {
+    //         dark: '#00F',  // Blue dots
+    //         light: '#0000' // Transparent background
+    //     }
+    // });
+    return res.status(200).json(deviceData);
+
+}
+
+
 async function getDevices(users, userId) {
     const devices = [];
     for (let user of users) {
