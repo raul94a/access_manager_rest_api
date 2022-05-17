@@ -15,6 +15,9 @@ const userSchema = new Schema({
         unique:true,
     },
     email: String,
+    firstName: String,
+    lastName: String,
+    
 
 });
 

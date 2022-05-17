@@ -21,7 +21,7 @@ exports.createAccessRequest = async (req, res, next) => {
             light: '#aff6fa' // Transparent background
         }
     });
-    const imageURL = 'http://192.168.43.112:8080/static/img/' + imageId;
+    const imageURL = 'http://192.168.1.113:8080/static/img/' + imageId;
     //initialize socket!!!!!!!
     io.getIO().emit(`accessRequest-${device}`, { action: 'readQR', callingUser: user, qrUrl: imageURL });
 }
