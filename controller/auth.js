@@ -34,6 +34,7 @@ exports.signup = async (req, res, next) => {
 exports.login = async (req, res, next) => {
     const body = req.body;
     const phoneNumber = body.phoneNumber;
+    console.log(body);
     await retrieveUserData(phoneNumber, res);
     //
 }

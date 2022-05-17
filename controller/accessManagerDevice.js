@@ -1,6 +1,7 @@
 const { AccessManagerDevice } = require('../models/AccessManagerDevice');
 const { AccessManagerDeviceData } = require('../models/AccessManagerDeviceData');
 const { User } = require('../models/User');
+const io = require('../socket');
 const path = require('path')
 const qr = require('qrcode');
 
@@ -31,7 +32,39 @@ exports.registerADM = async (req, res, next) => {
     console.log(deviceData);
     return res.status(200).json({ device: searchedDevice, deviceData: deviceData })
 }
+exports.changeActiveDeviceStatus = async (req, res, next) => {
+    const body = req.body;
+    const { deviceId, active } = body;
+    const searchedDevice = await AccessManagerDeviceData.findOneAndUpdate({ device: deviceId }, { active: active }, {
+        new: true,
+        upsert: false
+    }).catch(err => res.status(404).json({ error: 'Device could not be found' }))
+    console.log('Successful');
+    io.getIO()
+        .emit(`accessRequest-${deviceId}`,{ action: 'changeActiveStatus', active: active });
+    return res.status(200).json({success: `The device has been updated successfully. Now is in ${active ? 'enabled' : 'disabled'}`});
+}
+exports.changeDeviceAccessType = async (req,res,next) => {
+    const body = req.body;
+    const {deviceId, accessType} = body;
+    const searchedDevice = await AccessManagerDeviceData.findOneAndUpdate({ device: deviceId }, { accessType: accessType }, {
+        new: true,
+        upsert: false
+    }).catch(err => res.status(404).json({ error: 'Device could not be found' }))
+    console.log('Successful accesstype update');
+    return res.status(200).json({success: `The device access type has been updated successfuly. Now is in ${accessType} mode.`})
 
+}
+
+exports.checkDeviceStatus = async (req,res,next) => {
+    const params = req.params;
+    const {deviceId} = params;
+    const searchedDevice = await AccessManagerDeviceData.find({device:deviceId});
+    const active = searchedDevice[0].active;
+    console.log(searchedDevice, active)
+;    return res.status(200).json({active:active});
+}
+// }
 //ONLY FOR TESTING ISSUES
 exports.createADM = async (req, res, next) => {
     const body = req.body;
@@ -40,6 +73,8 @@ exports.createADM = async (req, res, next) => {
     await accessManager.save();
     return res.status(200).json(accessManager);
 }
+
+
 
 exports.getUserContactListDevices = async (req, res, next) => {
     console.log('PETICIÓN A CONTACT LIST DEVICES')
@@ -54,6 +89,21 @@ exports.getUserContactListDevices = async (req, res, next) => {
     return res.status(200).json(devices);
 
 }
+
+exports.getUserDevices = async (req, res, next) => {
+    console.log('enter in get user devices');
+    const param = req.params;
+    const { admin } = param;
+    console.log(admin, admin.length);
+    if (admin.toString().length != 24) {
+        return res.status(403).json({ error: 'BAD REQUEST' });
+    }
+    const devices = await AccessManagerDeviceData.find({ admin: admin }).select('-__v -admin')
+    console.log(devices);
+    console.log(admin, devices)
+    return res.status(200).json(devices);
+}
+
 exports.getAccessManagerDeviceData = async (req, res, next) => {
     console.log('in ADM DATA')
     const param = req.params
