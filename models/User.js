@@ -14,9 +14,13 @@ const userSchema = new Schema({
         required:true,
         unique:true,
     },
+    imageUrl: String,
     email: String,
     firstName: String,
     lastName: String,
+    birthDate: Date,
+    mainAddress:String,
+    secondaryAddress:String
     
 
 });
