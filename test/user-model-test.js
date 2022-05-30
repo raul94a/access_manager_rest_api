@@ -1,16 +1,18 @@
 const { initDatabase } = require('../loaders/database-loader');
-
+const jwt = require('jsonwebtoken');
 const expect =  require('chai').expect;
 const User = require('../models/User').User;
 const DeviceInfo = require('../models/DeviceInfo').DeviceInfo;
 const deviceFirebaseUrl = 'https://access-manager-2e513-default-rtdb.europe-west1.firebasedatabase.app/devices/-N0lTHauGlac4V6w0NWc.json';
+const authController = require('../controller/auth');
+const retrieveUser = require('./helper').retrieveUser;
 describe('DEVICE INFO TESTING',()=>{
     let user = new User();
     let deviceInfo = new DeviceInfo();
     before(async()=>{
         user = new User({
             uid: 'abcdefg',
-            phoneNumber: '+346060189830'
+            phoneNumber: '+346460189830'
         });
         const data = await fetch(deviceFirebaseUrl,{
             method: 'GET',
@@ -59,4 +61,38 @@ describe('DEVICE INFO TESTING',()=>{
         
     // });
 
+});
+
+describe('JSON WEB TOKEN GENERATION', async ()=>{
+    let user = new User();
+    let deviceInfo = new DeviceInfo();
+
+    before(async()=>{
+        await initDatabase();
+
+        user = new User({
+            uid: 'testinguid',
+            phoneNumber: '+346460189830'
+        });
+        await user.save()
+       
+        // console.log(deviceInfo)
+
+    })
+    after(()=>{
+        user.delete();
+       
+    })
+    it('USER CONTAINS TOKEN ATTRIBUTE', async ()=>{
+        //login
+        
+
+         user = await retrieveUser('+346460189830');
+         console.log(user);
+        expect(user).to.have.property('token')
+
+    })
+
+
+    
 })
