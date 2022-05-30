@@ -14,9 +14,29 @@ const userSchema = new Schema({
         required:true,
         unique:true,
     },
+    imageUrl: String,
     email: String,
     firstName: String,
     lastName: String,
+    birthDate: Date,
+    mainAddress:String,
+    secondaryAddress:String,
+    pictureVisibleBy:{
+        default:'ALL',
+        type:String,
+        
+    },
+    showAMDLocation:{
+        default: 'ALL',
+        type: String
+    },
+    contacts: [String],
+    blacklist: {
+        type: [Schema.Types.ObjectId],
+        default: []
+
+    }
+    
     
 
 });

@@ -41,29 +41,52 @@ exports.changeActiveDeviceStatus = async (req, res, next) => {
     }).catch(err => res.status(404).json({ error: 'Device could not be found' }))
     console.log('Successful');
     io.getIO()
-        .emit(`accessRequest-${deviceId}`,{ action: 'changeActiveStatus', active: active });
-    return res.status(200).json({success: `The device has been updated successfully. Now is in ${active ? 'enabled' : 'disabled'}`});
+        .emit(`accessRequest-${deviceId}`, { action: 'changeActiveStatus', active: active });
+    return res.status(200).json({ success: `The device has been updated successfully. Now is in ${active ? 'enabled' : 'disabled'}` });
 }
-exports.changeDeviceAccessType = async (req,res,next) => {
+exports.changeDeviceAccessType = async (req, res, next) => {
     const body = req.body;
-    const {deviceId, accessType} = body;
+    const { deviceId, accessType } = body;
     const searchedDevice = await AccessManagerDeviceData.findOneAndUpdate({ device: deviceId }, { accessType: accessType }, {
         new: true,
         upsert: false
     }).catch(err => res.status(404).json({ error: 'Device could not be found' }))
     console.log('Successful accesstype update');
-    return res.status(200).json({success: `The device access type has been updated successfuly. Now is in ${accessType} mode.`})
-
+    return res.status(200).json({ success: `The device access type has been updated successfuly. Now is in ${accessType} mode.` })
 }
 
-exports.checkDeviceStatus = async (req,res,next) => {
+exports.checkDeviceStatus = async (req, res, next) => {
     const params = req.params;
-    const {deviceId} = params;
-    const searchedDevice = await AccessManagerDeviceData.find({device:deviceId});
+    const { deviceId } = params;
+    const searchedDevice = await AccessManagerDeviceData.find({ device: deviceId });
     const active = searchedDevice[0].active;
     console.log(searchedDevice, active)
-;    return res.status(200).json({active:active});
+        ; return res.status(200).json({ active: active });
 }
+
+exports.changeAllowedUserStatusInDevice = async (req, res, next) => {
+
+    const body = req.body;
+    const { deviceId, userId } = body;
+    const searchedDeviceData = await AccessManagerDeviceData.findOne({ device: deviceId });
+    if (!searchedDeviceData) return res.status(404).json({ error: 'Something has been bad' })
+    let isIncluded = searchedDeviceData.allowedUsers.includes(userId);
+    if (isIncluded) {
+        let newAllowedList = searchedDeviceData.allowedUsers.filter(element => element != userId);
+        searchedDeviceData.allowedUsers = newAllowedList;
+    } else {
+        searchedDeviceData.allowedUsers.push(userId);
+
+
+    }
+    console.log(searchedDeviceData);
+    await searchedDeviceData.save();
+
+    return res.status(200).json({ message: `The user has been ${isIncluded ? 'deleted from list' : 'added to the list'}` })
+
+
+}
+
 // }
 //ONLY FOR TESTING ISSUES
 exports.createADM = async (req, res, next) => {
@@ -75,7 +98,7 @@ exports.createADM = async (req, res, next) => {
 }
 
 
-
+//amd from contacts list of auth user
 exports.getUserContactListDevices = async (req, res, next) => {
     console.log('PETICIÓN A CONTACT LIST DEVICES')
     const body = req.body;
@@ -89,7 +112,7 @@ exports.getUserContactListDevices = async (req, res, next) => {
     return res.status(200).json(devices);
 
 }
-
+//amd of the auth user
 exports.getUserDevices = async (req, res, next) => {
     console.log('enter in get user devices');
     const param = req.params;
@@ -115,17 +138,23 @@ exports.getAccessManagerDeviceData = async (req, res, next) => {
         .catch(err =>
             res.status(500)
                 .json({ error: 'Something went wrong!' }))
-    // const qrcreate = qr.create('HOLA QUE TAL TIO');
-    // console.log(__dirname)
 
-    // const pa = path.join('..',__dirname, 'img')
-    // await qr.toFile(`C:\\Users\\Raul9\\Desktop\\Desarrollo\\Proyectos\\TFC\\api\\img\\dslfjasf.png`, JSON.stringify(deviceData), {
-    //     color: {
-    //         dark: '#00F',  // Blue dots
-    //         light: '#0000' // Transparent background
-    //     }
-    // });
     return res.status(200).json(deviceData);
+
+}
+
+exports.turnOffUserAccessManagers = async (req, res, next) => {
+    const body = req.body;
+    const { userId: admin } = body;
+
+    const searchedUserAccessManagers = await AccessManagerDeviceData.find({ admin: admin });
+
+    for (let userAccessManager of searchedUserAccessManagers) {
+        userAccessManager['active'] = false;
+        await userAccessManager.save();
+    }
+    const devicesNumber = searchedUserAccessManagers.length;
+    return res.status(200).json({ message: `Your ${devicesNumber > 1 ? devicesNumber : ''} ${devicesNumber > 1 ? 'devices have' : 'device has'} been disabled!` })
 
 }
 
@@ -133,20 +162,40 @@ exports.getAccessManagerDeviceData = async (req, res, next) => {
 async function getDevices(users, userId) {
     const devices = [];
     for (let user of users) {
-        console.log(`user id: ${user._id.toString()}`)
-        let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id })
-        let isUserAllowed = false;
+        let blacklist = user['blacklist'] || [];
+        if (!blacklist.includes(userId)) {
 
-        //BOOK ACCESS TYPE IS NOT CONTROLLED
-        if (deviceData['accessType'] == 'REQUEST') {
-            isUserAllowed = deviceData.allowedUsers.includes(userId) || false;
+            console.log(`user id: ${user._id.toString()}`)
+            let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id })
 
+            if (deviceData) {
+
+                let isUserAllowed = false;
+
+                //BOOK ACCESS TYPE IS NOT CONTROLLED
+                if (deviceData['accessType'] == 'REQUEST') {
+                    isUserAllowed = deviceData.allowedUsers.includes(userId) || false;
+
+                }
+                if (user._id.toString() !== userId) {
+
+                    devices.push(deviceData['accessType'] == 'REQUEST'
+                        ? { user: user, deviceData: accessManagerDataToObject(deviceData), allowed: isUserAllowed }
+                        : { user: user, deviceData: accessManagerDataToObject(deviceData) }
+                    );
+                }
+            }
+            else {
+                if (user._id.toString() !== userId) {
+
+                    devices.push({ user: user, deviceData: {} })
+                }
+            }
+        } else {
+            console.log(`${userId} está en la blacklist de ${user._id}`)
         }
-        devices.push(deviceData['accessType'] == 'REQUEST'
-            ? { user: user, deviceData: accessManagerDataToObject(deviceData), allowed: isUserAllowed }
-            : { user: user, deviceData: accessManagerDataToObject(deviceData) }
-        );
     }
+    console.log(devices);
     return devices;
 }
 
