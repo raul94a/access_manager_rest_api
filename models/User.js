@@ -21,6 +21,7 @@ const userSchema = new Schema({
     birthDate: Date,
     mainAddress:String,
     secondaryAddress:String,
+    token:String,
     pictureVisibleBy:{
         default:'ALL',
         type:String,

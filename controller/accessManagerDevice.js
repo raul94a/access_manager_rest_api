@@ -4,6 +4,7 @@ const { User } = require('../models/User');
 const io = require('../socket');
 const path = require('path')
 const qr = require('qrcode');
+const jwt = require('jsonwebtoken');
 
 exports.registerADM = async (req, res, next) => {
     const body = req.body;
@@ -90,8 +91,9 @@ exports.changeAllowedUserStatusInDevice = async (req, res, next) => {
 // }
 //ONLY FOR TESTING ISSUES
 exports.createADM = async (req, res, next) => {
+
     const body = req.body;
-    const { registrationCode } = body;
+    const { registrationCode} = body;
     const accessManager = new AccessManagerDevice({ registrationCode: registrationCode });
     await accessManager.save();
     return res.status(200).json(accessManager);
@@ -163,10 +165,25 @@ async function getDevices(users, userId) {
     const devices = [];
     for (let user of users) {
         let blacklist = user['blacklist'] || [];
+        let showAMDLocation = user['showAMDLocation'] || 'ALL';
+        let pictureVisibleBy = user['pictureVisibleBy'] || 'ALL';
         if (!blacklist.includes(userId)) {
+            let contacts = user['contacts'] || [];
+            if(pictureVisibleBy === 'CONTACTS' && !contacts.includes(userId.toString())){
+                user['imageUrl'] = '';
+            }
+            let showLocation = true;
+            if(showAMDLocation === 'CONTACTS' && !contacts.includes(userId.toString())){
+                showLocation = false;
+            }
+            if(showAMDLocation  === 'NOBODY'){
+                showLocation = false;
+            }
+
+            
 
             console.log(`user id: ${user._id.toString()}`)
-            let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id })
+                        let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id }).select(`${showLocation ? '' : '-lat -long'}`)
 
             if (deviceData) {
 
@@ -230,3 +247,4 @@ async function createDefaultDeviceData(deviceId, userId) {
 
 
 }
+

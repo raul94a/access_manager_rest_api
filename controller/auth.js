@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const User = require('../models/User').User;
 const DeviceInfo = require('../models/DeviceInfo').DeviceInfo;
 
@@ -94,7 +95,10 @@ async function retrieveUserData(phoneNumber, res) {
     //function to check if the connection device is still the same
     //we're not gonna do for now
     if (user) {
-        user
+        //create jwt
+        const token = jwt.sign(user.id.toString(),'secretkey');
+        console.log(token);
+        user['token'] = token;
         return res.status(200).json(user);
     }
     return res.status(404).json({ error: 'User not found' })

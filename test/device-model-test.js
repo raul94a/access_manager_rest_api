@@ -7,12 +7,12 @@ describe('Mongoose creates a user in MongoDB',()=>{
     let user = User();
     before(()=>{
         user = new User({
-            uid: 'abcdefg',
-            phoneNumber: '+346060189830'
+            uid: 'abcdefgtest',
+            phoneNumber: '+346960189830'
         });
     })
     after(()=>{
-        // user.delete();
+        user.delete();
     })
     it('User creation passed',  async function(){
         // const newUser = new User({
@@ -24,7 +24,7 @@ describe('Mongoose creates a user in MongoDB',()=>{
         const saved = await user.save()
         console.log(saved);
         expect(saved).to.have.property('__v');
-        expect(saved).to.have.property('uid').equal('abcdefg')
+        expect(saved).to.have.property('uid').equal('abcdefgtest')
         
     });
 })
