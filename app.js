@@ -2,17 +2,7 @@ const express = require('express');
 const path = require('path')
 const loadDatabase = require('./loaders/database-loader').initDatabase;
 const app = express();
-const multer = require('multer')
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-       
-        cb(null, 'public/pictures')
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now().toString() + file.originalname)
-    }
-})
 const fileFilter = (req, file, cb) => {
     //CUIDADO CON EL FILE MIMETYPE 
     //HAY QUE DECLARAR EN ELC LIENTE EL TIPO DE ARCHVO!
@@ -37,9 +27,10 @@ const userRoutes = require('./routes/userRoutes');
 
 app.use(express.urlencoded({ extended: false }))
 app.use('/static', express.static(__dirname + '/public'));
-app.use(
-    multer({ storage: storage, }).single('imageUrl')
-  );
+app.use('/storage', express.static(__dirname + '/storage'))
+// app.use(
+//     multer({ storage: storage, }).single('imageUrl')
+//   );
 //Mandatory to set express.json() in order to listen to post request
 //in fact, what the statement does is to set the bodyparser to JSON format
 app.use(express.json());
