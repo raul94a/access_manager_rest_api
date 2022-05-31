@@ -1,3 +1,5 @@
+const { userLogger, accessManagerLogger } = require('../utils/logger');
+
 const { AccessManagerDevice } = require('../models/AccessManagerDevice');
 const { AccessManagerDeviceData } = require('../models/AccessManagerDeviceData');
 const { User } = require('../models/User');
@@ -12,9 +14,12 @@ exports.registerADM = async (req, res, next) => {
     //search DEVICE
     const searchedDevice = await AccessManagerDevice.findOne({ registrationCode: registrationCode });
     if (!searchedDevice) {
+        accessManagerLogger.error(`Status code 404; Device has not been found; maybe registration code is not valid; from ${req.ip}`)
         return res.status(404).json({ error: 'Device not found' })
     }
     if (searchedDevice['registered']) {
+        accessManagerLogger.error(`Status code 419; Device is already registered; request made by: ${user}; from ${req.ip}`)
+
         return res.status(419).json({ error: 'Device is already registered' })
     }
     // if (searchedDevice['registrationCode'] !== registrationCode) {
@@ -24,13 +29,16 @@ exports.registerADM = async (req, res, next) => {
     searchedDevice.registered = true;
 
     await searchedDevice.save().catch(err => {
+        accessManagerLogger.error(`Status code 500; Device could not be saved; likely database issue; ${err.toString()}`);
         return res.status(500).json({ error: 'Something is wrong' })
     });
     //should generate some access Manager device default data
     const deviceData = await createDefaultDeviceData(searchedDevice._id, user);
     searchedDevice.config = deviceData;
 
-    console.log(deviceData);
+    // console.log(deviceData);
+    accessManagerLogger.info(`Status code 200; Device ${searchedDevice._id.toString()} registered by user ${user}
+     from ip ${req.ip} with registration code of ${registrationCode}`)
     return res.status(200).json({ device: searchedDevice, deviceData: deviceData })
 }
 exports.changeActiveDeviceStatus = async (req, res, next) => {
@@ -39,7 +47,13 @@ exports.changeActiveDeviceStatus = async (req, res, next) => {
     const searchedDevice = await AccessManagerDeviceData.findOneAndUpdate({ device: deviceId }, { active: active }, {
         new: true,
         upsert: false
-    }).catch(err => res.status(404).json({ error: 'Device could not be found' }))
+    }).catch(err => {
+        accessManagerLogger.error(`Status code 404; Device not found; Also likely database issue, url ${req.url} requested from ip ${req.ip}`)
+        return res.status(404).json({ error: 'Device could not be found' })
+    })
+
+
+
     console.log('Successful');
     io.getIO()
         .emit(`accessRequest-${deviceId}`, { action: 'changeActiveStatus', active: active });
@@ -51,7 +65,13 @@ exports.changeDeviceAccessType = async (req, res, next) => {
     const searchedDevice = await AccessManagerDeviceData.findOneAndUpdate({ device: deviceId }, { accessType: accessType }, {
         new: true,
         upsert: false
-    }).catch(err => res.status(404).json({ error: 'Device could not be found' }))
+    }).catch(err => {
+        accessManagerLogger.error(`Status code 404; Device not found; Also likely database issue, url ${req.url} requested from ip ${req.ip}`)
+
+        res.status(404).json({ error: 'Device could not be found' })
+    })
+
+
     console.log('Successful accesstype update');
     return res.status(200).json({ success: `The device access type has been updated successfuly. Now is in ${accessType} mode.` })
 }
@@ -60,6 +80,11 @@ exports.checkDeviceStatus = async (req, res, next) => {
     const params = req.params;
     const { deviceId } = params;
     const searchedDevice = await AccessManagerDeviceData.find({ device: deviceId });
+    if (!searchedDevice) {
+        accessManagerLogger.info(`Status code 404; Device not found; Device: ${deviceId}, url ${req.url} requested from ip ${req.ip}`)
+
+        return res.status(404).json({ error: 'Device not found' })
+    }
     const active = searchedDevice[0].active;
     console.log(searchedDevice, active)
         ; return res.status(200).json({ active: active });
@@ -81,7 +106,11 @@ exports.changeAllowedUserStatusInDevice = async (req, res, next) => {
 
     }
     console.log(searchedDeviceData);
-    await searchedDeviceData.save();
+    await searchedDeviceData.save().catch(err => {
+        accessManagerLogger.info(`Status code 500; Device status could not be persisted into database;url ${req.url} requested from ip ${req.ip}`)
+
+        return res.status(500).json({ error: 'Something\'s wrong!' })
+    });
 
     return res.status(200).json({ message: `The user has been ${isIncluded ? 'deleted from list' : 'added to the list'}` })
 
@@ -93,7 +122,7 @@ exports.changeAllowedUserStatusInDevice = async (req, res, next) => {
 exports.createADM = async (req, res, next) => {
 
     const body = req.body;
-    const { registrationCode} = body;
+    const { registrationCode } = body;
     const accessManager = new AccessManagerDevice({ registrationCode: registrationCode });
     await accessManager.save();
     return res.status(200).json(accessManager);
@@ -106,7 +135,7 @@ exports.getUserContactListDevices = async (req, res, next) => {
     const body = req.body;
     const { contactsPhones, userId } = body;
     // console.log(contactsPhones)
-    const users = await User.find({ 'phoneNumber': { $in: contactsPhones } });
+    const users = await User.find({ 'phoneNumber': { $in: contactsPhones } }).select(' -contacts -uid -__v');
     console.log('users: ', users)
     const devices = await getDevices(users, userId)
 
@@ -137,9 +166,12 @@ exports.getAccessManagerDeviceData = async (req, res, next) => {
     console.log(device)
     const deviceData = await AccessManagerDeviceData.findOne({ device: device })
         .select('-admin -allowedUsers -__v')
-        .catch(err =>
-            res.status(500)
-                .json({ error: 'Something went wrong!' }))
+        .catch(err=> {
+            accessManagerLogger.info(`Status code 500; Device data could not be found; Also likely database issue, url ${req.url} requested from ip ${req.ip}`)
+
+            return res.status(500)
+                .json({ error: 'Something went wrong!' })
+        })
 
     return res.status(200).json(deviceData);
 
@@ -167,23 +199,24 @@ async function getDevices(users, userId) {
         let blacklist = user['blacklist'] || [];
         let showAMDLocation = user['showAMDLocation'] || 'ALL';
         let pictureVisibleBy = user['pictureVisibleBy'] || 'ALL';
+      
         if (!blacklist.includes(userId)) {
             let contacts = user['contacts'] || [];
-            if(pictureVisibleBy === 'CONTACTS' && !contacts.includes(userId.toString())){
+            if (pictureVisibleBy === 'CONTACTS' && !contacts.includes(userId.toString())) {
                 user['imageUrl'] = '';
             }
             let showLocation = true;
-            if(showAMDLocation === 'CONTACTS' && !contacts.includes(userId.toString())){
+            if (showAMDLocation === 'CONTACTS' && !contacts.includes(userId.toString())) {
                 showLocation = false;
             }
-            if(showAMDLocation  === 'NOBODY'){
+            if (showAMDLocation === 'NOBODY') {
                 showLocation = false;
             }
 
-            
+
 
             console.log(`user id: ${user._id.toString()}`)
-                        let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id }).select(`${showLocation ? '' : '-lat -long'}`)
+            let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id }).select(`${showLocation ? '' : '-lat -long'}`)
 
             if (deviceData) {
 

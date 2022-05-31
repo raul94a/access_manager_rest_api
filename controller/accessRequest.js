@@ -1,4 +1,6 @@
 const { AccessRequest } = require('../models/AccessRequest');
+const requestLogger = require('../utils/logger').requestLogger
+const env = require('../config/env.json');
 const path = require('path')
 const qr = require('qrcode');
 const io = require('../socket');
@@ -21,7 +23,8 @@ exports.createAccessRequest = async (req, res, next) => {
             light: '#aff6fa' // Transparent background
         }
     });
-    const imageURL = 'http://192.168.1.113:8080/static/img/' + imageId;
+    requestLogger.info(`QR generated. It only can be used by ${user} into device ${device} with identifier ${accessRequest._id.toString()}`)
+    const imageURL = env['QR-path'] + imageId;
     //initialize socket!!!!!!!
     io.getIO().emit(`accessRequest-${device}`, { action: 'readQR', callingUser: user, qrUrl: imageURL });
 }
@@ -36,6 +39,10 @@ exports.checkAccessRequest = async (req, res, next) => {
         print('access request is not valid')
         searchedAccessRequest.success = false;
         await searchedAccessRequest.save();
+        requestLogger.warn(`Not valid access request. The user ${postedUserId} 
+                has made use of QR-Code that belongs to the user ${accessRequest.user.toString()} for the device ${device} 
+                and the access request ${accessRequest._id.toString()}`)
+
         //socket
         print(`SOCKET CHANNEL: accessRequest-${searchedAccessRequest.device.toString()}`);
         io.getIO()
@@ -46,12 +53,15 @@ exports.checkAccessRequest = async (req, res, next) => {
     print('access request is valid')
     searchedAccessRequest.success = true;
     await searchedAccessRequest.save();
+
+
     print(`SOCKET CHANNEL: accessRequest-${searchedAccessRequest.device.toString()}`);
 
     //socket
     io.getIO()
         .emit(`accessRequest-${searchedAccessRequest.device.toString()}`
             , { action: 'checkDispatched', callingUser: accessRequest.user, success: true });
+    requestLogger.info(`Status code 200; Successful access request with the identifier ${accessRequest._id.toString()}`)
     return res.status(200).json({ success: true });
 
 
