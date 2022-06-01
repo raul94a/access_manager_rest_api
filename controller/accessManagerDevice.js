@@ -135,7 +135,7 @@ exports.getUserContactListDevices = async (req, res, next) => {
     const body = req.body;
     const { contactsPhones, userId } = body;
     // console.log(contactsPhones)
-    const users = await User.find({ 'phoneNumber': { $in: contactsPhones } }).select(' -contacts -uid -__v');
+    const users = await User.find({ 'phoneNumber': { $in: contactsPhones } }).select('-uid -__v');
     console.log('users: ', users)
     const devices = await getDevices(users, userId)
 
@@ -199,7 +199,9 @@ async function getDevices(users, userId) {
         let blacklist = user['blacklist'] || [];
         let showAMDLocation = user['showAMDLocation'] || 'ALL';
         let pictureVisibleBy = user['pictureVisibleBy'] || 'ALL';
-      
+        console.log('===================')
+        console.log(user);
+        console.log('=================')
         if (!blacklist.includes(userId)) {
             let contacts = user['contacts'] || [];
             if (pictureVisibleBy === 'CONTACTS' && !contacts.includes(userId.toString())) {
@@ -214,10 +216,11 @@ async function getDevices(users, userId) {
             }
 
 
-
+            userLogger.info(`${userId} is ${showLocation ? 'allowed' : 'not allowed'} to see the location of AMD belonging to ${user._id.toString()}`)
             console.log(`user id: ${user._id.toString()}`)
-            let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id }).select(`${showLocation ? '' : '-lat -long'}`)
-
+            let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id })
+            //contacts MUST be protected from access
+            user['contacts'] = [];
             if (deviceData) {
 
                 let isUserAllowed = false;
@@ -230,7 +233,7 @@ async function getDevices(users, userId) {
                 if (user._id.toString() !== userId) {
 
                     devices.push(deviceData['accessType'] == 'REQUEST'
-                        ? { user: user, deviceData: accessManagerDataToObject(deviceData), allowed: isUserAllowed }
+                        ? { user: user, deviceData: accessManagerDataToObject(deviceData), allowed: isUserAllowed, showLocation: showLocation }
                         : { user: user, deviceData: accessManagerDataToObject(deviceData) }
                     );
                 }
@@ -254,7 +257,9 @@ function accessManagerDataToObject(data) {
         accessType: data['accessType'],
         active: data['active'],
         address: data['address'],
-        device: data['device']
+        device: data['device'],
+        lat: data['lat'],
+        long: data['long']
 
 
     };
