@@ -1,23 +1,9 @@
 const express = require('express');
+
 const path = require('path')
 const loadDatabase = require('./loaders/database-loader').initDatabase;
 const app = express();
 
-const fileFilter = (req, file, cb) => {
-    //CUIDADO CON EL FILE MIMETYPE 
-    //HAY QUE DECLARAR EN ELC LIENTE EL TIPO DE ARCHVO!
-    console.log(file.mimetype)
-    if (
-        file.mimetype === 'image/png' ||
-        file.mimetype === 'image/jpg' ||
-        file.mimetype === 'image/jpeg'
-        ) {
-            cb(null, true);
-    } else {
-        console.log('FILTERED OUT')
-        cb(null, false);
-    }
-};
 
 
 const authRoutes = require('./routes/auth');
@@ -46,14 +32,12 @@ app.use(authRoutes.authRoutes);
 app.use(accessManagerDeviceRoutes.accessManagerDeviceRoutes);
 app.use(accessRequestRoutes.router)
 app.use(userRoutes.router);
-// app.put('/user/profile/update/picture', upload.single('imageUrl'),  async (req,res,next) => {
-//     const file = req.file;
-//     console.log(file);
-// })
+
 
 loadDatabase().then((_) => {
-    
+    const serverLogger = require('./utils/logger').serverLogger;
     const server = app.listen(8080);
+    serverLogger.info('Server started at port 8080');
     
     const io = require('./socket').init(server);
     io.on('connection', socket => {
