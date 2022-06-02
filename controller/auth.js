@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env.json');
 const User = require('../models/User').User;
 const DeviceInfo = require('../models/DeviceInfo').DeviceInfo;
-const authLogger = require('../utils/logger').authLogger;
+const { authLogger, message } = require('../utils/logger')
 
 exports.signup = async (req, res, next) => {
     //receives a json with phoneNumber and uid
@@ -29,7 +29,8 @@ exports.signup = async (req, res, next) => {
     const device = await registerDevice(deviceData, user._id, res);
     //añadir aqui jwt
     console.log(user, device);
-    authLogger.info(`signup endpoint => status code 200; ${user['uid']} registered successfully from ${req.ip || ''}`)
+
+    authLogger.info(message(req, 200, `${user['uid']} registered successfully`))
     return res.status(200).json(user);
 
 }
@@ -39,7 +40,7 @@ exports.login = async (req, res, next) => {
     const body = req.body;
     const phoneNumber = body.phoneNumber;
     console.log(body);
-    await retrieveUserData(phoneNumber, res,req.ip);
+    await retrieveUserData(phoneNumber, res, req);
     //
 }
 /**
@@ -55,11 +56,12 @@ async function registerUser(userData, res) {
     console.log(userData)
     const { uid, phoneNumber } = userData;
     const findUser = await User.findOne({ phoneNumber: phoneNumber }).catch(err => {
-        authLogger.error(`register user function => status code 500; ${err}`)
+        authLogger.error(message(req, 500, `${err}`))
         return res.status(500).json({ error: 'Something went wrong' })
     });
     if (findUser) {
-        authLogger.warn(`registerUser function => status code 409; the user is already registered`)
+
+        authLogger.warn(message(req, 409, `the user is already registered`))
         return res.status(409).json({ error: 'User is already registered' })
 
     }
@@ -68,7 +70,8 @@ async function registerUser(userData, res) {
         phoneNumber: phoneNumber
     });
     await user.save().catch(err => {
-        authLogger.error(`register user function => status code 500; ${err}`)
+        authLogger.error(message(req, 500, `the user is already registered`, `Internal error: ${err}`)
+        )
         return res.status(500).json({ error: 'Internal error' })
     });
 
@@ -84,7 +87,8 @@ async function registerDevice(deviceData, userId, res) {
     const device = new DeviceInfo({ ...deviceData, user: userId });
     // console.log(device);
     device.save().catch(err => {
-        authLogger.error(`register device function => status code 500; ${err}`)
+
+        authLogger.error(message(req, 500, `Internal error: ${err}`))
         return res.status(500).json({ error: 'Something went wrong' })
 
     });
@@ -92,10 +96,12 @@ async function registerDevice(deviceData, userId, res) {
     return device;
 }
 //with the phoneNumber we retrive the user information
-async function retrieveUserData(phoneNumber, res, ip) {
+async function retrieveUserData(phoneNumber, res, req) {
     const user = await User.findOne({ phoneNumber: phoneNumber }).select('-__v').catch(err => {
         //log
-        authLogger.error(`retrieveUserData function => status code 500; ${err.toString()}`)
+
+
+        authLogger.error(message(req, 500, `Internal error: ${err.toString()}`))
         return res.status(500).json({ error: 'Something went wrong' })
     });
     //function to check if the connection device is still the same
@@ -103,11 +109,12 @@ async function retrieveUserData(phoneNumber, res, ip) {
     if (user) {
         //create jwt
         const token = jwt.sign(user.id.toString(), env['jwt-secret']);
-     
+
         user['token'] = token;
-        authLogger.info(`retrieveUserData function status code 200; user ${user['uid']} has been retrieved successfully from ${ip}`)
+
+        authLogger.info(message(req, 200, `user ${user['uid']} has been retrieved successfully`))
         return res.status(200).json(user);
     }
-    authLogger.error('retrieveUserData function => status code 404; user not found')
+    authLogger.error(message(req, 404, `user not found`))
     return res.status(404).json({ error: 'User not found' })
 }

@@ -94,6 +94,10 @@ const requestLogger = createLogger({
     ]
 });
 
+const message = (req, status, message, cause = '') => {
+    return `${req.method} ${req.url} from ${req.ip}; status code ${status}; ${message}; ${cause}`
+}
+
 
 module.exports = {
     userLogger: userLogger,
@@ -101,5 +105,6 @@ module.exports = {
     serverLogger: serverLogger,
     dbLogger: dbLogger,
     accessManagerLogger: accessManagerLogger,
-    requestLogger:requestLogger
+    requestLogger:requestLogger,
+    message:message
 };

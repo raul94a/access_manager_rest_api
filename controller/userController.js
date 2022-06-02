@@ -1,6 +1,6 @@
 const User = require('../models/User').User;
 const env = require('../config/env.json');
-const userLogger = require('../utils/logger').userLogger;
+const {userLogger, message} = require('../utils/logger')
 
 
 exports.updateProfileData = async (req, res, next) => {
@@ -12,7 +12,8 @@ exports.updateProfileData = async (req, res, next) => {
         secondaryAddress, birthDate, _id
     } = body;
     if (Object.values(body).length == 0) {
-        userLogger.warn(`Status code 403; request not allowed; url ${req.url}; from ip ${req.ip}`)
+
+        userLogger.warn(message(req, 403, `not allowed`))
         return res.status(403).json({ message: 'not allowed' })
     }
 
@@ -25,7 +26,8 @@ exports.updateProfileData = async (req, res, next) => {
     searchedUser['secondaryAddress'] = secondaryAddress;
     searchedUser['birthDate'] = birthDate;
     await searchedUser.save().catch(err => {
-        userLogger.error(`Status code 500; User profile could not be updated; url ${req.url}; from ${req.ip}; more info: ${err.toString()}`)
+
+        userLogger.error(message(req, 500, `User profile could not be updated`, `more info: ${err.toString()}`))
         return res.status(500).json({ message: 'Something was wrong!', error: true })
     })
     return res.status(200).json({ message: 'The user has been updated successfuly' })
@@ -66,7 +68,9 @@ exports.updateContactsList = async (req, res, next) => {
         console.log('contacts updated');
         return res.status(200).json({ message: 'contacts list has been updated' })
     }
-    userLogger.warn(`Status code 404; User not found with id ${_id}; url ${req.url}; from ${req.ip}`)
+
+
+    userLogger.warn(message(req, 404, `User not found with id ${_id}`))
 
     return res.status(404).json({ error: 'User not found' })
 
@@ -80,7 +84,8 @@ exports.toggleUserFromBlacklist = async (req, res, next) => {
     console.log(searchedUser);
 
     if (!searchedUser) {
-        userLogger.warn(`Status code 404; User not found with id ${_id}; url ${req.url}; from ${req.ip}`)
+
+        userLogger.warn(message(req, 404, `User not found with id: ${_id || 'not provided id'}`))
 
         return res.status(404).json({ error: 'User not found' });
     }
@@ -102,7 +107,8 @@ exports.changeShowAMDLocationStatus = async (req, res, next) => {
     console.log(body);
     const searchedUser = await User.findOne({ _id: _id });
     if (!searchedUser) {
-        userLogger.warn(`Status code 404; User not found with id ${_id}; url ${req.url}; from ${req.ip}`)
+
+        userLogger.warn(message(req, 404, `User not found with id: ${_id || 'not provided id'}`))
 
         return res.status(404).json({ error: 'User not found' });
     }
@@ -116,7 +122,8 @@ exports.changePictureVisibilityStatus = async (req, res, next) => {
     const { userId: _id, changeTo: showTo } = body;
     const searchedUser = await User.findOne({ _id: _id });
     if (!searchedUser) {
-        userLogger.warn(`Status code 404; User not found with id ${_id}; url ${req.url}; from ${req.ip}`)
+        
+        userLogger.warn(    message(req, 404,`User not found with id: ${_id || 'not provided id'}`))
 
         return res.status(404).json({ error: 'User not found' });
     }
