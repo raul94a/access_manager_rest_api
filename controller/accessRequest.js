@@ -4,6 +4,7 @@ const env = require('../config/env.json');
 const path = require('path')
 const qr = require('qrcode');
 const io = require('../socket');
+const cryptr = require('cryptr');
 
 exports.createAccessRequest = async (req, res, next) => {
     const body = req.body;
@@ -17,7 +18,10 @@ exports.createAccessRequest = async (req, res, next) => {
     const appDir = path.dirname(require.main.filename)
     const imagePath = path.join(appDir, 'public', 'img', imageId);
     console.log(imagePath);
-    await qr.toFile(imagePath, JSON.stringify(accessRequest), {
+    const crypt = new cryptr(env['cryptr-secret']);
+    const stringifyAccessRequest = JSON.stringify(accessRequest);
+    const encryption = crypt.encrypt(stringifyAccessRequest);
+    await qr.toFile(imagePath, encryption, {
         color: {
             dark: '#7009b0',  // Blue dots
             light: '#aff6fa' // Transparent background
@@ -34,17 +38,20 @@ exports.checkAccessRequest = async (req, res, next) => {
     const body = req.body;
     const { postedUserId, accessRequest } = body;
     console.log(accessRequest);
-    const searchedAccessRequest = await AccessRequest.findOne({ _id: accessRequest._id });
+    const decrypter = new cryptr(env['cryptr-secret']);
+    const decypherAR = JSON.parse(decrypter.decrypt(accessRequest));
+    console.table(decypherAR)
+    console.log('POSTED USER ID:', postedUserId)
+    const searchedAccessRequest = await AccessRequest.findOne({ _id: decypherAR._id });
+
     print(searchedAccessRequest);
-    if (accessRequest.user !== postedUserId) {
+    if (decypherAR.user !== postedUserId) {
         print('access request is not valid')
         searchedAccessRequest.success = false;
         await searchedAccessRequest.save();
 
 
-        requestLogger.warn(message(req, 401, `Not valid access request. The user ${postedUserId}
-        has made use of QR-Code that belongs to the user ${accessRequest.user.toString()} for the device ${device} 
-        and the access request ${accessRequest._id.toString()}`))
+        requestLogger.warn(message(req, 401, `Not valid access request. The user ${postedUserId || 'UNKNOWN'}`))
 
         //socket
         print(`SOCKET CHANNEL: accessRequest-${searchedAccessRequest.device.toString()}`);
@@ -63,8 +70,8 @@ exports.checkAccessRequest = async (req, res, next) => {
     //socket
     io.getIO()
         .emit(`accessRequest-${searchedAccessRequest.device.toString()}`
-            , { action: 'checkDispatched', callingUser: accessRequest.user, success: true });
-    requestLogger.info(message(req, 200, `Successful access request with the identifier ${accessRequest._id.toString()}`))
+            , { action: 'checkDispatched', callingUser: decypherAR.user, success: true });
+    requestLogger.info(message(req, 200, `Successful access request with the identifier ${decypherAR._id}`))
     return res.status(200).json({ success: true });
 
 

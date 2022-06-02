@@ -140,7 +140,7 @@ exports.getUserContactListDevices = async (req, res, next) => {
     // console.log(contactsPhones)
     const users = await User.find({ 'phoneNumber': { $in: contactsPhones } }).select('-uid -__v');
     console.log('users: ', users)
-    const devices = await getDevices(users, userId)
+    const devices = await getDevices(users, userId,req)
 
     // console.log(devices);
     return res.status(200).json(devices);
@@ -198,7 +198,7 @@ exports.turnOffUserAccessManagers = async (req, res, next) => {
 }
 
 
-async function getDevices(users, userId) {
+async function getDevices(users, userId,req) {
     const devices = [];
     for (let user of users) {
         let blacklist = user['blacklist'] || [];
