@@ -1,10 +1,13 @@
 const multer = require('multer')
+const {serverLogger, message} = require('../utils/logger');
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-
-        cb(null, 'storage/')
+        serverLogger.info(message(req, 888,'Destination function'))
+        cb(null, 'storage')
     },
     filename: function (req, file, cb) {
+        serverLogger.info(message(req, 888,'FILENAME FUNCTION'))
+
         cb(null, Date.now().toString() + file.originalname)
     }
 })

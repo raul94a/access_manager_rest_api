@@ -13,7 +13,7 @@ const userRoutes = require('./routes/userRoutes');
 
 app.use(express.urlencoded({ extended: false }))
 app.use('/static', express.static(__dirname + '/public'));
-app.use('/storage', express.static(__dirname + '/storage'))
+app.use('/storage', express.static(path.join(__dirname, 'storage')))
 // app.use(
 //     multer({ storage: storage, }).single('imageUrl')
 //   );
