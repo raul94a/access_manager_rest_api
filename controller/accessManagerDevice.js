@@ -1,4 +1,4 @@
-const { userLogger, accessManagerLogger } = require('../utils/logger');
+const { userLogger, accessManagerLogger, message } = require('../utils/logger');
 
 const { AccessManagerDevice } = require('../models/AccessManagerDevice');
 const { AccessManagerDeviceData } = require('../models/AccessManagerDeviceData');
@@ -14,12 +14,12 @@ exports.registerADM = async (req, res, next) => {
     //search DEVICE
     const searchedDevice = await AccessManagerDevice.findOne({ registrationCode: registrationCode });
     if (!searchedDevice) {
-        accessManagerLogger.error(`Status code 404; Device has not been found; maybe registration code is not valid; from ${req.ip}`)
+
+        accessManagerLogger.error(message(req, 404, `Device has not been found`, 'Maybe registration code is not valid'))
         return res.status(404).json({ error: 'Device not found' })
     }
     if (searchedDevice['registered']) {
-        accessManagerLogger.error(`Status code 419; Device is already registered; request made by: ${user}; from ${req.ip}`)
-
+        accessManagerLogger.error(message(req, 419, `Device is already registered`))
         return res.status(419).json({ error: 'Device is already registered' })
     }
     // if (searchedDevice['registrationCode'] !== registrationCode) {
@@ -48,7 +48,7 @@ exports.changeActiveDeviceStatus = async (req, res, next) => {
         new: true,
         upsert: false
     }).catch(err => {
-        accessManagerLogger.error(`Status code 404; Device not found; Also likely database issue, url ${req.url} requested from ip ${req.ip}`)
+        accessManagerLogger.error(message(req, 404, `Device has not been found`))
         return res.status(404).json({ error: 'Device could not be found' })
     })
 
@@ -66,7 +66,8 @@ exports.changeDeviceAccessType = async (req, res, next) => {
         new: true,
         upsert: false
     }).catch(err => {
-        accessManagerLogger.error(`Status code 404; Device not found; Also likely database issue, url ${req.url} requested from ip ${req.ip}`)
+        accessManagerLogger.error(message(req, 404, `Device has not been found`))
+
 
         res.status(404).json({ error: 'Device could not be found' })
     })
@@ -81,7 +82,8 @@ exports.checkDeviceStatus = async (req, res, next) => {
     const { deviceId } = params;
     const searchedDevice = await AccessManagerDeviceData.find({ device: deviceId });
     if (!searchedDevice) {
-        accessManagerLogger.info(`Status code 404; Device not found; Device: ${deviceId}, url ${req.url} requested from ip ${req.ip}`)
+
+        accessManagerLogger.info(message(req, 404, `Device has not been found`))
 
         return res.status(404).json({ error: 'Device not found' })
     }
@@ -107,7 +109,8 @@ exports.changeAllowedUserStatusInDevice = async (req, res, next) => {
     }
     console.log(searchedDeviceData);
     await searchedDeviceData.save().catch(err => {
-        accessManagerLogger.info(`Status code 500; Device status could not be persisted into database;url ${req.url} requested from ip ${req.ip}`)
+        accessManagerLogger.info(message(req, 500, 'Device status could not be persisted into database'))
+
 
         return res.status(500).json({ error: 'Something\'s wrong!' })
     });
@@ -166,8 +169,10 @@ exports.getAccessManagerDeviceData = async (req, res, next) => {
     console.log(device)
     const deviceData = await AccessManagerDeviceData.findOne({ device: device })
         .select('-admin -allowedUsers -__v')
-        .catch(err=> {
-            accessManagerLogger.info(`Status code 500; Device data could not be found; Also likely database issue, url ${req.url} requested from ip ${req.ip}`)
+        .catch(err => {
+
+            accessManagerLogger.info(message(req, 500, 'Device status could not be persisted into database', 'also likely database issue')
+            )
 
             return res.status(500)
                 .json({ error: 'Something went wrong!' })
@@ -216,7 +221,7 @@ async function getDevices(users, userId) {
             }
 
 
-            userLogger.info(`${userId} is ${showLocation ? 'allowed' : 'not allowed'} to see the location of AMD belonging to ${user._id.toString()}`)
+            userLogger.info(message(req, 500, `${userId} is ${showLocation ? 'allowed' : 'not allowed'} to see the location of AMD belonging to ${user._id.toString()}`))
             console.log(`user id: ${user._id.toString()}`)
             let deviceData = await AccessManagerDeviceData.findOne({ admin: user._id })
             //contacts MUST be protected from access
