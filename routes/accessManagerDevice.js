@@ -4,7 +4,7 @@ const { verifyToken } = require('../middleware/verify-token');
 const accessManagerDeviceController = require('../controller/accessManagerDevice');
 
 
-router.get('/adm/data/:device', verifyToken, accessManagerDeviceController.getAccessManagerDeviceData);
+router.get('/adm/data/:device',  accessManagerDeviceController.getAccessManagerDeviceData);
 router.get('/adm/user/:admin', verifyToken, accessManagerDeviceController.getUserDevices);
 router.get('/adm/status/device/:deviceId', verifyToken, accessManagerDeviceController.checkDeviceStatus)
 router.put('/adm/register', verifyToken, accessManagerDeviceController.registerADM);

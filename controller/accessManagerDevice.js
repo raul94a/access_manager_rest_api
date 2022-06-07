@@ -88,8 +88,10 @@ exports.checkDeviceStatus = async (req, res, next) => {
         return res.status(404).json({ error: 'Device not found' })
     }
     const active = searchedDevice[0].active;
+    const accessType = searchedDevice[0].accessType;
+    const allowedUsers = searchedDevice[0].allowedUsers;
     console.log(searchedDevice, active)
-        ; return res.status(200).json({ active: active });
+        ; return res.status(200).json({ active: active, accessType: accessType, allowedUsers: allowedUsers });
 }
 
 exports.changeAllowedUserStatusInDevice = async (req, res, next) => {
