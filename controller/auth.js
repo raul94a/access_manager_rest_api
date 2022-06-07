@@ -23,10 +23,10 @@ exports.signup = async (req, res, next) => {
 
 
     const body = req.body;
-    console.log(body);
+    // console.log(body);
     const { user: userData, device: deviceData } = body;
-    const user = await registerUser(userData, res);
-    const device = await registerDevice(deviceData, user._id, res);
+    const user = await registerUser(userData, res,req);
+    const device = await registerDevice(deviceData, user._id, res,req);
     //añadir aqui jwt
     console.log(user, device);
 
@@ -39,7 +39,7 @@ exports.signup = async (req, res, next) => {
 exports.login = async (req, res, next) => {
     const body = req.body;
     const phoneNumber = body.phoneNumber;
-    console.log(body);
+    // console.log(body);
     await retrieveUserData(phoneNumber, res, req);
     //
 }
@@ -52,7 +52,7 @@ exports.login = async (req, res, next) => {
 
 
 
-async function registerUser(userData, res) {
+async function registerUser(userData, res,req) {
     console.log(userData)
     const { uid, phoneNumber } = userData;
     const findUser = await User.findOne({ phoneNumber: phoneNumber }).catch(err => {
@@ -74,7 +74,7 @@ async function registerUser(userData, res) {
         )
         return res.status(500).json({ error: 'Internal error' })
     });
-
+    authLogger.info(message(req, 200, `User has been registered with success`))
     return user;
 }
 
@@ -83,7 +83,7 @@ async function registerUser(userData, res) {
  * @param {Object} device
  * @returns {DeviceInfo}
  */
-async function registerDevice(deviceData, userId, res) {
+async function registerDevice(deviceData, userId, res,req) {
     const device = new DeviceInfo({ ...deviceData, user: userId });
     // console.log(device);
     device.save().catch(err => {
@@ -92,6 +92,7 @@ async function registerDevice(deviceData, userId, res) {
         return res.status(500).json({ error: 'Something went wrong' })
 
     });
+    authLogger.info(message(req, 200, `Device has been registered with success`))
 
     return device;
 }

@@ -30,6 +30,8 @@ exports.updateProfileData = async (req, res, next) => {
         userLogger.error(message(req, 500, `User profile could not be updated`, `more info: ${err.toString()}`))
         return res.status(500).json({ message: 'Something was wrong!', error: true })
     })
+    userLogger.info(message(req, 200, `User profile has been updated with success`))
+
     return res.status(200).json({ message: 'The user has been updated successfuly' })
     //     return res.json(searchedUser);
 }
@@ -48,6 +50,8 @@ exports.updateProfilePicture = async (req, res, next) => {
     console.log(imageUrl)
     searchedUser.imageUrl = imageUrl;
     await searchedUser.save();
+    userLogger.info(message(req, 200, `User picture has been updated with success`))
+
     return res.status(200).json({ imageUrl: imageUrl });
 
 
@@ -66,6 +70,8 @@ exports.updateContactsList = async (req, res, next) => {
         searchedUser['contacts'] = contacts
         await searchedUser.save();
         console.log('contacts updated');
+        userLogger.info(message(req, 200, `User\'s contact list has been updated with success`))
+
         return res.status(200).json({ message: 'contacts list has been updated' })
     }
 
@@ -98,6 +104,8 @@ exports.toggleUserFromBlacklist = async (req, res, next) => {
     }
     searchedUser['blacklist'] = blacklist;
     await searchedUser.save();
+    userLogger.info(message(req, 200, `User\'s blacklist has been updated with success`))
+
     return res.status(200).json({ message: 'User toggle successfully' })
 }
 
@@ -114,6 +122,8 @@ exports.changeShowAMDLocationStatus = async (req, res, next) => {
     }
     searchedUser['showAMDLocation'] = showTo;
     await searchedUser.save();
+    userLogger.info(message(req, 200, `User\'s show location mode has been updated with success`))
+
     return res.status(200).json({ message: 'AMD location permission changed successfully' });
 }
 
@@ -129,6 +139,8 @@ exports.changePictureVisibilityStatus = async (req, res, next) => {
     }
     searchedUser['pictureVisibleBy'] = showTo;
     await searchedUser.save();
+    userLogger.info(message(req, 200, `User\'s picture visibility has been updated with success`))
+
     return res.status(200).json({ message: 'Picture visibility permission changed successfully' });
 }
 

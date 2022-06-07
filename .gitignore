@@ -1,5 +1,5 @@
 node_modules/
-config/
+*/env.json
 logs/
-storage/
-public/img/
+*/*.png
+*/*.jpg
