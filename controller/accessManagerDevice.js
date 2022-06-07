@@ -140,9 +140,11 @@ exports.getUserContactListDevices = async (req, res, next) => {
     // console.log(contactsPhones)
     const users = await User.find({ 'phoneNumber': { $in: contactsPhones } }).select('-uid -__v');
     console.log('users: ', users)
-    const devices = await getDevices(users, userId,req)
+    const devices = await getDevices(users, userId, req)
 
     // console.log(devices);
+    userLogger.info(message(req, 200, `User contact list has been fetched with success`))
+
     return res.status(200).json(devices);
 
 }
@@ -153,11 +155,15 @@ exports.getUserDevices = async (req, res, next) => {
     const { admin } = param;
     console.log(admin, admin.length);
     if (admin.toString().length != 24) {
+        userLogger.info(message(req, 400, `BAD REQUEST`, 'admin param has not correct length'))
+
         return res.status(403).json({ error: 'BAD REQUEST' });
     }
     const devices = await AccessManagerDeviceData.find({ admin: admin }).select('-__v -admin')
     console.log(devices);
     console.log(admin, devices)
+    userLogger.info(message(req, 200, `Devices fetched successfully`))
+
     return res.status(200).json(devices);
 }
 
@@ -177,6 +183,8 @@ exports.getAccessManagerDeviceData = async (req, res, next) => {
             return res.status(500)
                 .json({ error: 'Something went wrong!' })
         })
+    accessManagerLogger.info(message(req, 200, 'Device data fetched'))
+    
 
     return res.status(200).json(deviceData);
 
@@ -193,12 +201,14 @@ exports.turnOffUserAccessManagers = async (req, res, next) => {
         await userAccessManager.save();
     }
     const devicesNumber = searchedUserAccessManagers.length;
+    accessManagerLogger.info(message(req, 200, `Access managers from ${admin} have been disabled`))
+
     return res.status(200).json({ message: `Your ${devicesNumber > 1 ? devicesNumber : ''} ${devicesNumber > 1 ? 'devices have' : 'device has'} been disabled!` })
 
 }
 
 
-async function getDevices(users, userId,req) {
+async function getDevices(users, userId, req) {
     const devices = [];
     for (let user of users) {
         let blacklist = user['blacklist'] || [];
