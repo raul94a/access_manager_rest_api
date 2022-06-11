@@ -71,7 +71,8 @@ exports.changeDeviceAccessType = async (req, res, next) => {
 
         res.status(404).json({ error: 'Device could not be found' })
     })
-
+     io.getIO()
+        .emit(`accessRequest-${deviceId}`, { action: 'changeAccessType', accessType: accessType });
 
     console.log('Successful accesstype update');
     return res.status(200).json({ success: `The device access type has been updated successfuly. Now is in ${accessType} mode.` })
