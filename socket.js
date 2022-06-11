@@ -4,7 +4,7 @@ let io;
 
 module.exports = {
     init: httpServer => {
-        io = require('socket.io')(httpServer, {cors:{origin:'*'}});
+        io = require('socket.io')(httpServer,{extraHeaders:{'Access-Control-Allow-Origin':'https://localhost:8080'},cors:{origin:'*'}});
         
         return io;
     },
