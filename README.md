@@ -4,7 +4,7 @@
 2. en ./config/env.json cambiar las variables de entorno
     - Para facilitar las cosas, se puede crear una cuenta en MongoDB Atlas Database, crear un Clúster M0 Sandbox y copiar la URL proporcionada por la plataforma en el campo url
     - Todos los campos con la palabra YOURIP deben ser sustituidos por http://localhost:8080
-    - los campos con YOURSECRET no tienen porqué ser cambiados para que la app funcione
+    - los campos con YOURSECRET no tienen por qué ser cambiados para que la app funcione
 
 (el json que debe ser modificado)
      {
