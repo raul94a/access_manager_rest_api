@@ -12,9 +12,13 @@ exports.createAccessRequest = async (req, res, next) => {
     const body = req.body;
     const { user, device } = body;
     const date = new Date(Date.now());
+   
     const data = { user: user, device: device, date: date };
     const accessRequest = new AccessRequest({ ...data });
     await accessRequest.save();
+    console.log(`Request access`)
+    requestLogger.info(message(req, 0, `accessRequestSaved`)
+    )
     //generate qr
     const imageId = `${accessRequest._id}${accessRequest.user}.png`;
     const appDir = path.dirname(require.main.filename)
@@ -32,6 +36,7 @@ exports.createAccessRequest = async (req, res, next) => {
     )
     const imageURL = env['QR-path'] + imageId;
     //initialize socket!!!!!!!
+    console.log(`Emitting in channel accessRequest-${device}`)
     io.getIO().emit(`accessRequest-${device}`, { action: 'readQR', callingUser: user, qrUrl: imageURL });
 }
 

@@ -110,7 +110,7 @@ async function retrieveUserData(phoneNumber, res, req) {
     if (user) {
         //create jwt
         const token = jwt.sign(user.id.toString(), env['jwt-secret']);
-
+        console.log(token);
         user['token'] = token;
 
         authLogger.info(message(req, 200, `user ${user['uid']} has been retrieved successfully`))

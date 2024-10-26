@@ -41,6 +41,6 @@ loadDatabase().then((_) => {
     
     const io = require('./socket').init(server);
     io.on('connection', socket => {
-        console.log('CLIENT CONNECTED')
+        console.log(`Client connected: ${socket.data}`)
     });
 })
