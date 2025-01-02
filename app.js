@@ -17,8 +17,7 @@ app.use('/storage', express.static(path.join(__dirname, 'storage')))
 // app.use(
 //     multer({ storage: storage, }).single('imageUrl')
 //   );
-//Mandatory to set express.json() in order to listen to post request
-//in fact, what the statement does is to set the bodyparser to JSON format
+
 app.use(express.json());
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');

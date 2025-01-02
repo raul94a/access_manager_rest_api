@@ -18,9 +18,9 @@ exports.verifyToken = (req, res, next) => {
 
         next();
     } catch (error) {
-        authLogger.warn(message(req, 400, 'Forbidden', 'bad token')
+        authLogger.warn(message(req, 403, 'Forbidden', 'bad token')
         )
 
-        return res.status(400).json({ error: 'Access denied' })
+        return res.status(403).json({ error: 'Access denied' })
     }
 }
